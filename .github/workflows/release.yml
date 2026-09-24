@@ -119,10 +119,6 @@ jobs:
           INTEL_CHECKSUM: ${{ steps.package.outputs.intel_checksum }}
         run: |
           set -euo pipefail
-          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "::error::A release already exists for ${RELEASE_TAG}. Choose a new tag."
-            exit 1
-          fi
           VERSION="${RELEASE_TAG#v}"
           cat > release-notes.md <<EOF_NOTES
           ## Qpure ${VERSION} 中文化预览版
@@ -138,13 +134,28 @@ jobs:
 
           此预览包未使用 Developer ID 签名或 Apple 公证。macOS 首次打开时可能显示安全提示；也可以从源码自行构建。
           EOF_NOTES
-          gh release create "${RELEASE_TAG}" \
-            "${ARM_DMG}" \
-            "${ARM_CHECKSUM}" \
-            "${INTEL_DMG}" \
-            "${INTEL_CHECKSUM}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --target "${GITHUB_SHA}" \
-            --title "Qpure ${VERSION} 中文化预览版" \
-            --prerelease \
-            --notes-file release-notes.md
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" \
+              "${ARM_DMG}" \
+              "${ARM_CHECKSUM}" \
+              "${INTEL_DMG}" \
+              "${INTEL_CHECKSUM}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber
+            gh release edit "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "Qpure ${VERSION} 中文化预览版" \
+              --prerelease \
+              --notes-file release-notes.md
+          else
+            gh release create "${RELEASE_TAG}" \
+              "${ARM_DMG}" \
+              "${ARM_CHECKSUM}" \
+              "${INTEL_DMG}" \
+              "${INTEL_CHECKSUM}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "Qpure ${VERSION} 中文化预览版" \
+              --prerelease \
+              --notes-file release-notes.md
+          fi
